@@ -1,5 +1,5 @@
 import io
-import locale
+from babel.dates import format_date
 import streamlit as st
 import plotly.express as px
 import pandas as pd
@@ -334,9 +334,8 @@ if st.session_state.show_dataframe:
     df_final = arreglos(preclosing_df, simulacion_df, actual, historico_df)
     st.session_state.df_final = df_final  # Guardar el DataFrame final en el estado de sesión
 
-    locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
-    fecha_hoy = datetime.datetime.now()
-    fecha_formateada = fecha_hoy.strftime("%d de %B de %Y")
+    fecha_hoy = datetime.now()
+    fecha_formateada = format_date(fecha_hoy, format='d MMMM y', locale='es_ES')
     #scroll
     scrolll=maquillaje(actual)
     html_content = generate_scroller_html(scrolll)
