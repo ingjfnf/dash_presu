@@ -475,7 +475,9 @@ if st.session_state.show_dataframe:
                     'xanchor': 'center',
                     'yanchor': 'top',
                     'font': dict(size=24)
-                }
+                },
+                xaxis=dict(showgrid=False),  # Ocultar la grilla del eje x
+                yaxis=dict(showgrid=False),  # Ocultar la grilla del eje y
             )
 
             st.plotly_chart(fig)
