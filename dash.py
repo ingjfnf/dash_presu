@@ -477,6 +477,11 @@ if st.session_state.show_dataframe:
                     'font': dict(size=24)
                 },
                 xaxis=dict(showgrid=False),  # Ocultar la grilla del eje x
+                   yaxis=dict(
+                    showgrid=True,
+                    gridwidth=0.5,
+                    gridcolor='rgba(255, 255, 255, 0.2),  # Color de la grilla más suave
+    
                 plot_bgcolor='rgba(0, 0, 0, 0)'  # Fondo transparente
             )
 
