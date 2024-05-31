@@ -5,6 +5,7 @@ import plotly.express as px
 import pandas as pd
 from datetime import datetime
 import warnings
+import emoji
 warnings.filterwarnings('ignore')
 
 st.set_page_config(page_title="PLANNING & REPORTING!!!", page_icon=":bar_chart:", layout="wide")
@@ -551,14 +552,15 @@ if st.session_state.show_dataframe:
 
 else:
     col1, col2 = st.columns(2)
-
+    # Emoji de la carpeta
+    folder_emoji = emoji.emojize(':file_folder:')
     with col1:
-        preclosing = st.file_uploader(":file_folder: CARGUE DE ARCHIVO PRECLOSING", type=["csv", "txt", "xlsx", "xls"], key="preclosing_upload")
-        simulacion = st.file_uploader(":file_folder: CARGUE DE ARCHIVO SIMULACIÓN ESCENARIOS", type=["csv", "txt", "xlsx", "xls"], key="simulacion_upload")
+        preclosing = st.file_uploader(f"{folder_emoji} CARGUE DE ARCHIVO PRECLOSING", type=["csv", "txt", "xlsx", "xls"], key="preclosing_upload")
+        simulacion = st.file_uploader(f"{folder_emoji} CARGUE DE ARCHIVO SIMULACIÓN ESCENARIOS", type=["csv", "txt", "xlsx", "xls"], key="simulacion_upload")
 
     with col2:
-        historico = st.file_uploader(":file_folder: CARGUE DE ARCHIVO HISTÓRICO DE EJECUCIONES", type=["csv", "txt", "xlsx", "xls"], key="historico_upload")
-        traza = st.file_uploader(":file_folder: CARGUE DE ARCHIVO DE EJECUCIÓN ACTUAL", type=["csv", "txt", "xlsx", "xls"], key="traza_upload")
+        historico = st.file_uploader(f"{folder_emoji} CARGUE DE ARCHIVO HISTÓRICO DE EJECUCIONES", type=["csv", "txt", "xlsx", "xls"], key="historico_upload")
+        traza = st.file_uploader(f"{folder_emoji} CARGUE DE ARCHIVO DE EJECUCIÓN ACTUAL", type=["csv", "txt", "xlsx", "xls"], key="traza_upload")
 
     if preclosing is not None:
         st.session_state.preclosing = preclosing
