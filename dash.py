@@ -3,7 +3,7 @@ from babel.dates import format_date
 import streamlit as st
 import plotly.express as px
 import pandas as pd
-import datetime
+from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -335,7 +335,9 @@ if st.session_state.show_dataframe:
     st.session_state.df_final = df_final  # Guardar el DataFrame final en el estado de sesión
 
     fecha_hoy = datetime.now()
-    fecha_formateada = format_date(fecha_hoy, format='d MMMM y', locale='es_ES')
+    fecha_formateada = format_date(fecha_hoy, format='d', locale='es_ES')
+    fecha_mes = format_date(fecha_hoy, format='MMMM', locale='es_ES')
+    fecha_año = format_date(fecha_hoy, format='y', locale='es_ES')
     #scroll
     scrolll=maquillaje(actual)
     html_content = generate_scroller_html(scrolll)
@@ -345,9 +347,9 @@ if st.session_state.show_dataframe:
     
     # TABLA PARETO 2
     
-    st.subheader(":point_right: Análisis de Pareto de la Ejecución Actual al: " + fecha_formateada)
+    st.subheader(":point_right: Análisis de Pareto de la Ejecución Actual al: " + fecha_formateada + " de " + fecha_mes + " de " + fecha_año)
         
-    fecha_formateada = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+    
     pareto_uno = actual.copy()
 
     grafica_1 = pareto_auto(pareto_uno)
