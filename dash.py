@@ -481,7 +481,8 @@ if st.session_state.show_dataframe:
                    yaxis=dict(
                     showgrid=True,
                     gridwidth=0.5,
-                    gridcolor='rgba(255, 255, 255, 0.2)'),  # Color de la grilla más suave
+                    gridcolor='rgba(255, 255, 255, 0.1)'),  # Color de la grilla más suave
+                    
     
                 plot_bgcolor='rgba(0, 0, 0, 0)'  # Fondo transparente
 
