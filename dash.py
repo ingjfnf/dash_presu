@@ -118,18 +118,22 @@ def generate_scroller_html(df):
 
 # Función para transformar los datos
 def arreglos(preclosing_df, simulacion_df, actual, historico_df):
-    preclosing_df = preclosing_df[["FECHA", "CONCEPTO", "PRESUPUESTO"]].copy()
+    preclosing_df = preclosing_df[["FECHA", "Campo homologado", "PRESUPUESTO"]].copy()
     preclosing_df['PRESUPUESTO'] = preclosing_df['PRESUPUESTO'].fillna(0).round().astype('int64')
-    preclosing_df = preclosing_df.rename(columns={"PRESUPUESTO": "VALOR"})
+    preclosing_df = preclosing_df.rename(columns={"PRESUPUESTO": "VALOR","Campo homologado":"CONCEPTO"})
     preclosing_df["ANALISIS"] = "BUDGET"
 
+    
+    simulacion_df = simulacion_df[["FECHA", "Campo homologado", "VALOR"]].copy()
     simulacion_df['VALOR'] = simulacion_df['VALOR'].fillna(0).round().astype('int64')
+    simulacion_df = simulacion_df.rename(columns={"Campo homologado":"CONCEPTO"})
     simulacion_df["ANALISIS"] = "FORECAST"
 
     actual_tendencia = actual[["FECHA", "CONCEPTO", "EJECUCIÓN"]].rename(columns={"EJECUCIÓN": "VALOR"})
     actual_tendencia["ANALISIS"] = "ACTUAL"
 
-    historico_df = historico_df.rename(columns={"EJECUCIÓN": "VALOR"})
+    historico_df = historico_df[["FECHA", "Campo homologado", "EJECUCIÓN"]].copy()
+    historico_df = historico_df.rename(columns={"EJECUCIÓN": "VALOR","Campo homologado":"CONCEPTO"})
     historico_df['FECHA'] = pd.to_datetime(historico_df['FECHA'], dayfirst=True)
     historico_df['AÑO'] = historico_df['FECHA'].dt.year
     dataframes_por_año = {año: historico_df[historico_df['AÑO'] == año].reset_index(drop=True) for año in historico_df['AÑO'].unique()}
@@ -329,7 +333,7 @@ if st.session_state.show_dataframe:
     preclosing_df = pd.read_excel(st.session_state.preclosing)
     simulacion_df = pd.read_excel(st.session_state.simulacion)
     historico_df = pd.read_excel(st.session_state.historico)
-    actual = pd.read_excel(st.session_state.traza)
+    actual = pd.read_excel(st.session_state.traza,usecols="A:D")
 
     # Transformar los datos
     df_final = arreglos(preclosing_df, simulacion_df, actual, historico_df)
