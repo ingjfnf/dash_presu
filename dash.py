@@ -118,9 +118,8 @@ def generate_scroller_html(df):
 
 # Función para transformar los datos
 def arreglos(preclosing_df, simulacion_df, actual, historico_df):
-    preclosing_df = preclosing_df[["FECHA", "Campo homologado", "total_presupuesto"]].copy()
-    preclosing_df['total_presupuesto'] = preclosing_df['total_presupuesto'].fillna(0).round().astype('int64')
-    preclosing_df = preclosing_df.rename(columns={"Campo homologado": "CONCEPTO", "total_presupuesto": "VALOR"})
+    preclosing_df['PRESUPUESTO'] = preclosing_df['PRESUPUESTO'].fillna(0).round().astype('int64')
+    preclosing_df = preclosing_df.rename(columns={"PRESUPUESTO": "VALOR"})
     preclosing_df["ANALISIS"] = "BUDGET"
 
     simulacion_df['VALOR'] = simulacion_df['VALOR'].fillna(0).round().astype('int64')
