@@ -61,7 +61,7 @@ st.markdown(f"""
     <hr class='divider'>
 """, unsafe_allow_html=True)
 
-# Inicializar el estado de sesión
+# Inicializamos el estado de sesión
 if 'show_dataframe' not in st.session_state:
     st.session_state.show_dataframe = False
 
@@ -75,7 +75,7 @@ def generate_scroller_html(df):
             items.append(f"<span>{row['CONCEPTO']} <span style='color:green;'>&#9650;</span> {row['VARIACION']}% &nbsp;&nbsp;&nbsp;&nbsp;</span>")
     
     items_html = ''.join(items)
-    items_html_double = items_html + items_html  # Duplicar los elementos para un scroller continuo
+    items_html_double = items_html + items_html  # Duplicamos los elementos para el scroller continuo
     
     html_content = f"""
     <div id="scroller" style="white-space: nowrap; overflow: hidden; width: 100%; height: 50px; position: relative;">
@@ -185,6 +185,32 @@ def style_dataframe_filtered(df):
     df_formatted = df.copy()
     for col in df.columns:
         if col == 'VALOR':
+            df_formatted[col] = df_formatted[col].apply(format_currency)
+    
+    styled_df = df_formatted.style.set_table_styles(
+        [
+            {
+                'selector': 'th',
+                'props': [('background-color', '#1F77B4'), ('color', 'white'), ('font-size', '14px'), ('text-align', 'center')]
+            },
+            {
+                'selector': 'td',
+                'props': [('font-size', '12px'), ('text-align', 'center'), ('white-space', 'nowrap')]
+            },
+            {
+                'selector': 'td.col0',
+                'props': [('font-weight', 'bold')]
+            }
+        ]
+    ).set_properties(**{'border': '1px solid white', 'width': '70px'})
+    
+    return styled_df
+
+
+def style_tabla_filtro(df):
+    df_formatted = df.copy()
+    for col in df.columns:
+        if col != 'CONCEPTO' or col != 'MES':
             df_formatted[col] = df_formatted[col].apply(format_currency)
     
     styled_df = df_formatted.style.set_table_styles(
@@ -324,15 +350,15 @@ def maquillaje(df):
 
 if st.session_state.show_dataframe:
 
-    # Cargar los datos desde el estado de sesión
+    # Cargamos los datos desde el estado de sesión
     preclosing_df = pd.read_excel(st.session_state.preclosing)
     simulacion_df = pd.read_excel(st.session_state.simulacion)
     historico_df = pd.read_excel(st.session_state.historico)
     actual = pd.read_excel(st.session_state.traza)
 
-    # Transformar los datos
+    
     df_final = arreglos(preclosing_df, simulacion_df, actual, historico_df)
-    st.session_state.df_final = df_final  # Guardar el DataFrame final en el estado de sesión
+    st.session_state.df_final = df_final  # Guardamos el DataFrame final en el estado de sesión
 
     fecha_hoy = datetime.now()
     fecha_formateada = format_date(fecha_hoy, format='d', locale='es_ES')
@@ -387,76 +413,76 @@ if st.session_state.show_dataframe:
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
    
     #GRÁFICA DE TENDENCIAS
-    # Obtener lista de conceptos con la opción "TODAS"
+    
 
     st.subheader(":point_right: Análisis Gráfico de Tendencias para Escenarios Presupuestales")
   
-    # Utilizar el DataFrame final guardado en el estado de sesión
+    # Utilizamos el DataFrame final guardado en el estado de sesión
     df = st.session_state.df_final.copy()
     df['FECHA'] = pd.to_datetime(df['FECHA'])
     
-    # Asignar correctamente los meses
+    
     df['Mes'] = df['FECHA'].dt.strftime('%b')
     df['Año'] = df['FECHA'].dt.year
     
-    # Convertir los nombres de los meses a inglés
+    
     meses_ingles = {'ene.': 'Jan', 'feb.': 'Feb', 'mar.': 'Mar', 'abr.': 'Apr', 'may.': 'May', 'jun.': 'Jun',
                     'jul.': 'Jul', 'ago.': 'Aug', 'sep.': 'Sep', 'oct.': 'Oct', 'nov.': 'Nov', 'dic.': 'Dec'}
     df['Mes'] = df['Mes'].replace(meses_ingles)
     
     df['EJECUCIÓN_MIL_MILLONES'] = df['VALOR'] / 1e9
     
-    # Ordenar los meses correctamente
+    
     df['Mes'] = pd.Categorical(df['Mes'], categories=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], ordered=True)
 
     conceptos_unicos = df['CONCEPTO'].unique().tolist()
     conceptos_opciones = ['TODAS'] + conceptos_unicos
 
-    # Colocar los selectores arriba de la gráfica
+    
     col1, col2 = st.columns(2)
     with col1:
         conceptos_seleccionados = st.multiselect('Selecciona los conceptos', options=conceptos_opciones, default=[])
     with col2:
         analisis = st.multiselect('Selecciona el tipo de análisis', options=df['ANALISIS'].unique(), default=[])
 
-    # Si se selecciona "TODAS", seleccionar todos los conceptos
+    
     if 'TODAS' in conceptos_seleccionados:
         conceptos_seleccionados = conceptos_unicos
 
     if conceptos_seleccionados and analisis:
-        # Filtrar y agrupar los datos por mes y tipo de análisis, sumando solo los existentes
+        
         df_filtered = df[(df['CONCEPTO'].isin(conceptos_seleccionados)) & (df['ANALISIS'].isin(analisis))]
 
-        # Verificar si el DataFrame filtrado no está vacío
+        
         if not df_filtered.empty:
             df_grouped = df_filtered.groupby(['Mes', 'Año', 'ANALISIS'], as_index=False)['EJECUCIÓN_MIL_MILLONES'].sum()
 
-            # Filtrar valores cero
+            
             df_grouped = df_grouped[df_grouped['EJECUCIÓN_MIL_MILLONES'] != 0]
 
-            # Ajustar las leyendas y asegurarse de que las líneas sean continuas
+            
             fig = px.line(
                 df_grouped,
                 x='Mes',
                 y='EJECUCIÓN_MIL_MILLONES',
-                color='ANALISIS',  # Asegurando que se muestre el tipo de análisis
+                color='ANALISIS',  #
                 title="COMPARACIÓN DE ESCENARIOS PRESUPUESTALES",
                 labels={'EJECUCIÓN_MIL_MILLONES': 'Ejecución (Mil Millones de COP)', 'ANALISIS': 'Tipo de Análisis'},
                 markers=True
             )
 
-            # Actualizar trazos para eliminar los nombres de los años y las líneas discontinuas
+            
             for trace in fig.data:
-                trace.update(name=trace.name.split(',')[0])  # Eliminar el año de la leyenda
-                trace.update(line=dict(dash=None))  # Asegurar que las líneas sean continuas
+                trace.update(name=trace.name.split(',')[0])  
+                trace.update(line=dict(dash=None))  
 
-            # Asignar colores únicos a cada línea
+            
             unique_colors = px.colors.qualitative.Plotly
             color_mapping = {name: unique_colors[i % len(unique_colors)] for i, name in enumerate(df['ANALISIS'].unique())}
             for trace in fig.data:
                 trace.update(line=dict(color=color_mapping[trace.name]))
 
-            # Actualizar el hovertemplate para mostrar información correcta
+            
             for trace in fig.data:
                 trace.update(
                     hovertemplate='<b>Mes</b>: %{x}<br>' +
@@ -464,7 +490,7 @@ if st.session_state.show_dataframe:
                     '<b>Análisis</b>: ' + trace.name + '<br>'
                 )
 
-            # Configurar el título centrado y con un tamaño de letra más grande
+            
             fig.update_layout(
                 width=1250,
                 height=730,
@@ -476,14 +502,14 @@ if st.session_state.show_dataframe:
                     'yanchor': 'top',
                     'font': dict(size=24)
                 },
-                xaxis=dict(showgrid=False),  # Ocultar la grilla del eje x
+                xaxis=dict(showgrid=False), 
                    yaxis=dict(
                     showgrid=True,
                     gridwidth=0.5,
-                    gridcolor='rgba(255, 255, 255, 0.1)'),  # Color de la grilla más suave
+                    gridcolor='rgba(255, 255, 255, 0.1)'),  
                     
     
-                plot_bgcolor='rgba(0, 0, 0, 0)'  # Fondo transparente
+                plot_bgcolor='rgba(0, 0, 0, 0)'  
 
             )
 
@@ -498,7 +524,7 @@ if st.session_state.show_dataframe:
                 processed_data = output.getvalue()
                 return processed_data
                                 
-            # Agregar el botón de descarga debajo de la gráfica
+            
             excel_data = descargar_excel(df_final)
             st.download_button(
                 label="Descargar Datos",
@@ -506,6 +532,52 @@ if st.session_state.show_dataframe:
                 file_name="df_final.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+            
+            #TABLA EXPANSORA
+            
+            expansor = df_final.copy()
+
+            expansor['FECHA'] = pd.to_datetime(expansor['FECHA'], errors='coerce')
+            expansor['MES'] = expansor['FECHA'].dt.strftime('%B')
+            analisis_options = ['Seleccione una opción'] + list(expansor['ANALISIS'].unique())
+
+            with st.expander(":point_right: TABLA DINÁMICA: CÁLCULO DE DIFERENCIAS POR ESCENARIO"):
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    escenario_1 = st.selectbox("Escenario 1", options=analisis_options, key="escenario_1")
+                with col2:
+                    escenario_2 = st.selectbox("Escenario 2", options=analisis_options, key="escenario_2")
+                with col3:
+                    conceptos_seleccionados = st.multiselect("Conceptos", options=expansor['CONCEPTO'].unique(), key="conceptos_seleccionados")
+                with col4:
+                    fechas_seleccionadas = st.multiselect("Meses", options=expansor['MES'].unique(), key="fechas_seleccionadas")
+
+                
+                total_escenario = [escenario_1, escenario_2]
+                if 'Seleccione una opción' in total_escenario:
+                    st.warning("Por favor, seleccione opciones válidas para los escenarios.")
+                else:
+                    
+                    filtro = expansor[
+                        (expansor['ANALISIS'].isin(total_escenario)) & 
+                        (expansor['CONCEPTO'].isin(conceptos_seleccionados)) & 
+                        (expansor['MES'].isin(fechas_seleccionadas))
+                    ]
+
+                    if filtro.empty:
+                        st.warning("No hay datos que coincidan con los filtros seleccionados.")
+                    else:
+                        df_pivot = filtro.pivot_table(index=['CONCEPTO', 'MES'], columns='ANALISIS', values='VALOR').reset_index()
+                        meses_ls = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+                        df_pivot['MES'] = pd.Categorical(df_pivot['MES'], categories=meses_ls, ordered=True)
+                        dfsalida = df_pivot.sort_values(by=['CONCEPTO', 'MES'])
+                        dfsalida["DIFERENCIA"] = dfsalida.apply(lambda x: abs(x[dfsalida.columns[-2]] - x[dfsalida.columns[-1]]), axis=1)
+                        styled_filtrado = style_tabla_filtro(dfsalida)
+                        st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
+                        st.write(styled_filtrado.set_table_attributes('class="styled-table"').hide(axis="index").to_html(), unsafe_allow_html=True)
+                        st.markdown("</div>", unsafe_allow_html=True)
+
         else:
             st.markdown('<p style="font-size:24px; color:orange;">No hay datos disponibles para los filtros seleccionados.</p>', unsafe_allow_html=True)
     else:
@@ -524,35 +596,35 @@ if st.session_state.show_dataframe:
 
     df_out['FECHA'] = df_out['FECHA'].dt.date
 
-     # Asegurarse de que el índice y las columnas sean únicos
+     
     df_out = df_out.reset_index(drop=True)
     df_out.columns = pd.Index([f"{col}_{i}" if list(df_out.columns).count(col) > 1 else col for i, col in enumerate(df_out.columns)])
 
-    # Crear dos columnas: una para el selector y otra para la tabla
+    
     col1, col2 = st.columns([1, 3])
 
     with col1:
-        # Obtener los valores únicos de la columna "CONCEPTO"
+        
         conceptos = df_out['CONCEPTO'].unique()
     
-        # Agregar un multiselect para seleccionar conceptos
+        
         selected_conceptos = st.multiselect('Selecciona los conceptos', conceptos)
 
     with col2:
-        # Filtrar el DataFrame según los conceptos seleccionados
+        
         df_filtered = df_out[df_out['CONCEPTO'].isin(selected_conceptos)]
 
-        # Aplicar estilo al DataFrame filtrado
+        
         styled_df_3 = style_dataframe_filtered(df_filtered)
 
-        # Mostrar el DataFrame estilizado en Streamlit
+        
         st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
         st.write(styled_df_3.set_table_attributes('class="styled-table"').hide(axis="index").to_html(), unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
 else:
     col1, col2 = st.columns(2)
-    # Emoji de la carpeta
+    
     folder_emoji = emoji.emojize(':file_folder:')
     with col1:
         preclosing = st.file_uploader(f"{folder_emoji} CARGUE DE ARCHIVO PRECLOSING", type=["csv", "txt", "xlsx", "xls"], key="preclosing_upload")
