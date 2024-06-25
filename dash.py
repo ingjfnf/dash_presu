@@ -541,7 +541,8 @@ if st.session_state.show_dataframe:
             expansor['MES'] = expansor['FECHA'].dt.strftime('%B')
             analisis_options = ['Seleccione una opción'] + list(expansor['ANALISIS'].unique())
 
-            with st.expander(":point_right: TABLA DINÁMICA: CÁLCULO DE DIFERENCIAS POR ESCENARIO"):
+            with st.expander("TABLA DINÁMICA: CÁLCULO DE DIFERENCIAS POR ESCENARIO"):
+            
                 col1, col2, col3, col4 = st.columns(4)
                 
                 with col1:
