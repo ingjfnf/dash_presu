@@ -13,53 +13,6 @@ st.set_page_config(page_title="PLANNING & REPORTING!!!", page_icon=":bar_chart:"
 # URL de la imagen del logo en GitHub
 logo_url = "https://raw.githubusercontent.com/ingjfnf/dash_presu/main/logo.jpg"
 
-st.markdown(f"""
-    <div style="display: flex; justify-content: center; align-items: center; position: relative;">
-        <img src="{logo_url}" alt="Logo de la empresa" style="position: absolute; left: 0; top: 0; width: 200px; height: auto;"/>
-        <span style="font-size: 2rem; margin-right: 0.5rem;">📊</span>
-        <h1 style="text-align: center;">E.D.A. PLANNING & REPORTING !!!</h1>
-    </div>
-    <style>
-        div.block-container {{
-            padding-top: 3rem;
-        }}
-        .styled-table {{
-            width: 70% !important;  /* Ajusta el ancho aquí */
-            margin: auto;
-        }}
-        th {{
-            background-color: #1F77B4 !important;
-            color: white !important;
-            text-align: center !important;
-            font-size: 14px !important;  /* Reduce el tamaño de la letra del encabezado */
-        }}
-        td {{
-            text-align: center !important;
-            font-size: 13px !important;  /* Reduce el tamaño de la letra de las celdas */
-            white-space: nowrap;
-        }}
-        .concepto-col {{
-            font-weight: bold !important;
-        }}
-        hr.divider {{
-            border: 0;
-            height: 1px;
-            background: #444;
-            margin: 2rem 0;
-        }}
-        .custom-select-container {{
-            display: flex; justify-content: center;
-            font-size: 1.2rem;
-        }}
-        .custom-select {{
-            width: 150px !important;
-        }}
-        .small-font {{
-            font-size: 12px !important;  /* Reduce el tamaño de la letra */
-        }}
-    </style>
-    <hr class='divider'>
-""", unsafe_allow_html=True)
 
 # Inicializamos el estado de sesión
 if 'show_dataframe' not in st.session_state:
@@ -77,8 +30,10 @@ def generate_scroller_html(df):
     items_html = ''.join(items)
     items_html_double = items_html + items_html  # Duplicamos los elementos para el scroller continuo
     
+    
     html_content = f"""
-    <div id="scroller" style="white-space: nowrap; overflow: hidden; width: 100%; height: 50px; position: relative;">
+    <div id="scroller" style="white-space: nowrap; overflow: hidden; width: 92.5%; height: 37px; position: fixed;background-color: white; 
+    color: black; z-index: 2000; display: flex; align-items: center;">
         <div id="scrolling-text" style="display: inline-block;">
             {items_html_double}
         </div>
@@ -89,12 +44,16 @@ def generate_scroller_html(df):
         overflow: hidden;
         position: relative;
         margin-bottom: 0px;  /* Asegúrate de que no haya margen debajo del scroller */
+        display: flex;
+        align-items: center;
     }}
     #scrolling-text {{
         display: inline-block;
         white-space: nowrap;
         position: relative;
         animation: scroll 110s linear infinite;
+        font-weight: bold;
+        padding: 0 10px;
     }}
     @keyframes scroll {{
         0% {{ transform: translateX(0); }}
@@ -276,7 +235,70 @@ def pareto_auto(traza_df):
     del paretofinal["LLAVE"]
 
     return paretofinal
-    
+
+def distributivo(df,modelo):
+    distri = df[(df["ANALISIS"] == "Historico_2022") | (df["ANALISIS"] == "Historico_2023") | (df["ANALISIS"] == "ACTUAL")]
+    distri = distri.copy()
+    distri["absoluto"] = distri["VALOR"].abs()
+    actual = distri[distri["ANALISIS"] == "ACTUAL"]
+    promedio_por_concepto = actual.groupby('CONCEPTO')['absoluto'].mean()
+    promedio_por_concepto_anual = promedio_por_concepto * 12
+    actual = actual.copy()
+    actual['TOTAL CONCEPTO PROMEDIO'] = actual['CONCEPTO'].map(promedio_por_concepto_anual)
+    actual['TOTAL CONCEPTO PROMEDIO'] = actual['TOTAL CONCEPTO PROMEDIO'].astype("int64")
+    actual['PESO PONDERADO PROMEDIO'] = actual.apply(
+        lambda x: round((x["absoluto"] / x['TOTAL CONCEPTO PROMEDIO']) * 100, 2) if x['TOTAL CONCEPTO PROMEDIO'] != 0 else 0,
+        axis=1
+    )
+    historia_22 = distri[distri["ANALISIS"] == "Historico_2022"]
+    suma_por_concepto = historia_22.groupby('CONCEPTO')['absoluto'].sum()
+    historia_22 = historia_22.copy()
+    historia_22['TOTAL CONCEPTO'] = historia_22['CONCEPTO'].map(suma_por_concepto)
+    historia_22['TOTAL CONCEPTO'] = historia_22['TOTAL CONCEPTO'].astype("int64")
+    historia_22['PESO PONDERADO PROMEDIO'] = historia_22.apply(
+        lambda x: round((x["absoluto"] / x['TOTAL CONCEPTO']) * 100, 2) if x['TOTAL CONCEPTO'] != 0 else 0,
+        axis=1
+    )
+    historia_23 = distri[distri["ANALISIS"] == "Historico_2023"]
+    suma_por_concepto = historia_23.groupby('CONCEPTO')['absoluto'].sum()
+    historia_23 = historia_23.copy()
+    historia_23['TOTAL CONCEPTO'] = historia_23['CONCEPTO'].map(suma_por_concepto)
+    historia_23['TOTAL CONCEPTO'] = historia_23['TOTAL CONCEPTO'].astype("int64")
+    historia_23['PESO PONDERADO PROMEDIO'] = historia_23.apply(
+        lambda x: round((x["absoluto"] / x['TOTAL CONCEPTO']) * 100, 2) if x['TOTAL CONCEPTO'] != 0 else 0,
+        axis=1
+    )
+    Distribucion_23 = historia_23[["FECHA", "CONCEPTO", "PESO PONDERADO PROMEDIO", "ANALISIS"]]
+    Distribucion_22 = historia_22[["FECHA", "CONCEPTO", "PESO PONDERADO PROMEDIO", "ANALISIS"]]
+    Distribucion_actual = actual[["FECHA", "CONCEPTO", "PESO PONDERADO PROMEDIO", "ANALISIS"]]
+    salida_total = pd.concat([Distribucion_23, Distribucion_22, Distribucion_actual], ignore_index=True)
+
+    df_transpuesto = modelo.melt(id_vars=['CONCEPTO COSTO', 'CONCEPTO COSTO HOMOLOGADO'], var_name='mensualidad', value_name='Valor')
+    del df_transpuesto["CONCEPTO COSTO"]
+    def convertir_fecha(fecha):
+        meses = {
+            'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04', 
+            'may': '05', 'jun': '06', 'jul': '07', 'ago': '08', 
+            'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
+        }
+        mes, año = fecha.split('-')
+        año = '20' + año  
+        mes = meses[mes.lower()]  
+        return f'{año}-{mes}-01'
+
+    df_transpuesto['FECHA'] = df_transpuesto['mensualidad'].apply(convertir_fecha)
+    del df_transpuesto['mensualidad']
+    df_transpuesto = df_transpuesto.rename(columns={"CONCEPTO COSTO HOMOLOGADO": "CONCEPTO", "Valor": "PESO"})
+    df_transpuesto = df_transpuesto[["FECHA", "CONCEPTO", "PESO"]]
+    df_transpuesto["PESO PONDERADO PROMEDIO"] = df_transpuesto.apply(lambda x: round(x["PESO"] * 100, 2), axis=1)
+    del df_transpuesto["PESO"]
+    df_transpuesto["ANALISIS"] = "MODELO"
+    df_transpuesto['FECHA'] = pd.to_datetime(df_transpuesto['FECHA'])
+    distribucion_final = pd.concat([salida_total, df_transpuesto], ignore_index=True)
+
+    return distribucion_final
+
+
 def pareto_filtro(traza_df):
     traza_df['PRESUPUESTO'] = traza_df['PRESUPUESTO'].fillna(0)
     traza_df['PRESUPUESTO'] = traza_df['PRESUPUESTO'].round().astype('int64')
@@ -354,7 +376,8 @@ if st.session_state.show_dataframe:
     preclosing_df = pd.read_excel(st.session_state.preclosing)
     simulacion_df = pd.read_excel(st.session_state.simulacion)
     historico_df = pd.read_excel(st.session_state.historico)
-    actual = pd.read_excel(st.session_state.traza)
+    actual = pd.read_excel(st.session_state.traza,sheet_name="SEGUIMIENTO")
+    distribucion = pd.read_excel(st.session_state.traza,sheet_name="DISTRIBUCION")
 
     
     df_final = arreglos(preclosing_df, simulacion_df, actual, historico_df)
@@ -367,10 +390,59 @@ if st.session_state.show_dataframe:
     #scroll
     scrolll=maquillaje(actual)
     html_content = generate_scroller_html(scrolll)
-    st.markdown(html_content, unsafe_allow_html=True)
-    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    st.markdown(html_content, unsafe_allow_html=True)   
+    st.markdown("<div style='margin-top: 60px;'></div>", unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div style="display: flex; justify-content: center; align-items: center; position: relative;">
+        <img src="{logo_url}" alt="Logo de la empresa" style="top: 0; width: 180px; height: auto;"/>
+        <h1 style="text-align: right;">E.D.A. PLANNING & REPORTING !!! </h1>
+        <span style="font-size: 3rem; margin-left: 2rem;">📊</span>
+    </div>
+    <style>
+        div.block-container {{
+            padding-top: 3rem;
+        }}
+        .styled-table {{
+            width: 70% !important;  /* Ajusta el ancho aquí */
+            margin: auto;
+        }}
+        th {{
+            background-color: #1F77B4 !important;
+            color: white !important;
+            text-align: center !important;
+            font-size: 14px !important;  /* Reduce el tamaño de la letra del encabezado */
+        }}
+        td {{
+            text-align: center !important;
+            font-size: 13px !important;  /* Reduce el tamaño de la letra de las celdas */
+            white-space: nowrap;
+        }}
+        .concepto-col {{
+            font-weight: bold !important;
+        }}
+        hr.divider {{
+            border: 0;
+            height: 1px;
+            background: #444;
+            margin: 2rem 0;
+        }}
+        .custom-select-container {{
+            display: flex; justify-content: center;
+            font-size: 1.2rem;
+        }}
+        .custom-select {{
+            width: 150px !important;
+        }}
+        .small-font {{
+            font-size: 12px !important;  /* Reduce el tamaño de la letra */
+        }}
+    </style>
     
-    
+""", unsafe_allow_html=True)
+
+
+    st.markdown("<br><br><br><br>", unsafe_allow_html=True)
     # TABLA PARETO 2
     
     st.subheader(":point_right: Análisis de Pareto de la Ejecución Actual al: " + fecha_formateada + " de " + fecha_mes + " de " + fecha_año)
@@ -508,7 +580,6 @@ if st.session_state.show_dataframe:
                     gridwidth=0.5,
                     gridcolor='rgba(255, 255, 255, 0.1)'),  
                     
-    
                 plot_bgcolor='rgba(0, 0, 0, 0)'  
 
             )
@@ -541,8 +612,7 @@ if st.session_state.show_dataframe:
             expansor['MES'] = expansor['FECHA'].dt.strftime('%B')
             analisis_options = ['Seleccione una opción'] + list(expansor['ANALISIS'].unique())
 
-            with st.expander("TABLA DINÁMICA: CÁLCULO DE DIFERENCIAS POR ESCENARIO"):
-            
+            with st.expander(":point_right: TABLA DINÁMICA: CÁLCULO DE DIFERENCIAS POR ESCENARIO"):
                 col1, col2, col3, col4 = st.columns(4)
                 
                 with col1:
@@ -623,7 +693,135 @@ if st.session_state.show_dataframe:
         st.write(styled_df_3.set_table_attributes('class="styled-table"').hide(axis="index").to_html(), unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
+    #DISTRIBUCION_GRAFI
+    df_distri = df_final.copy()
+    df_distribucion= distributivo(df_distri,distribucion)
+    st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+    st.subheader(":point_right: Análisis de Distribución de Costos Mensuales por Concepto")
+   
+    # Variable selector
+    st.markdown('<div class="custom-select-container">', unsafe_allow_html=True)
+    st.markdown('<span style="font-size: 1.3rem;">Selecciona el concepto para analizar</span>', unsafe_allow_html=True)
+    seleccion_conceptos = st.multiselect(
+        '',
+        options=df_distribucion['CONCEPTO'].unique(),
+        key="custom-selector-conceptos"
+    )    
+    df_filtrado= df_distribucion[df_distribucion['CONCEPTO'].isin(seleccion_conceptos)].copy()
+
+    if not df_filtrado.empty:
+        df_filtrado['FECHA'] = pd.to_datetime(df_filtrado['FECHA'])
+        df_filtrado['Mes'] = df_filtrado['FECHA'].dt.strftime('%B')
+        df_filtrado['PESO PONDERADO PROMEDIO'] = df_filtrado['PESO PONDERADO PROMEDIO'].round(2)
+
+        # Definir el orden de los meses en inglés
+        meses_ordenados = ['January', 'February', 'March', 'April', 'May', 'June', 
+                        'July', 'August', 'September', 'October', 'November', 'December']
+        df_filtrado['Mes'] = pd.Categorical(df_filtrado['Mes'], categories=meses_ordenados, ordered=True)
+
+        fig = px.line(
+            df_filtrado,
+            x='Mes',
+            y='PESO PONDERADO PROMEDIO',
+            color='ANALISIS',
+            title="DISTRIBUCIÓN MENSUAL DE COSTOS",
+            labels={'PESO PONDERADO PROMEDIO': 'DISTRIBUCIÓN PORCENTUAL %', 'ANALISIS': 'Tipo de Análisis'},
+            markers=True
+        )
+
+        for trace in fig.data:
+            trace.update(name=trace.name.split(',')[0])
+            trace.update(line=dict(dash=None))
+
+        unique_colors = px.colors.qualitative.Plotly
+        color_mapping = {name: unique_colors[i % len(unique_colors)] for i, name in enumerate(df_filtrado['ANALISIS'].unique())}
+        for trace in fig.data:
+            trace.update(line=dict(color=color_mapping[trace.name]))
+
+        for trace in fig.data:
+            trace.update(
+                hovertemplate='<b>Mes</b>: %{x}<br>' +
+                '<b>Distribución Porcentual</b>: %{y:.2f}%<br>' +
+                '<b>Análisis</b>: ' + trace.name + '<br>'
+            )
+
+        fig.update_layout(
+            width=1250,
+            height=730,
+            title={
+                'text': "DISTRIBUCIÓN MENSUAL DE COSTOS",
+                'y':0.9,
+                'x':0.5,
+                'xanchor': 'center',
+                'yanchor': 'top',
+                'font': dict(size=24)
+            },
+            xaxis=dict(showgrid=False, categoryorder='array', categoryarray=meses_ordenados),
+            yaxis=dict(
+                tickformat=".0f",  
+                showgrid=True,
+                gridwidth=0.5,
+                gridcolor='rgba(255, 255, 255, 0.1)',
+            ),
+            plot_bgcolor='rgba(0, 0, 0, 0)'
+        )
+
+        st.plotly_chart(fig)
+    else:
+        st.markdown('<p style="font-size:24px; color:orange;">Por favor, selecciona al menos un concepto para visualizar la gráfica.</p>', unsafe_allow_html=True)
+
+    
 else:
+    st.markdown(f"""
+    <div style="display: flex; justify-content: center; align-items: center; position: relative;">
+        <img src="{logo_url}" alt="Logo de la empresa" style="top: 0; width: 180px; height: auto;"/>
+        <h1 style="text-align: right;">E.D.A. PLANNING & REPORTING !!! </h1>
+        <span style="font-size: 3rem; margin-left: 2rem;">📊</span>
+    </div>
+    <style>
+        div.block-container {{
+            padding-top: 3rem;
+        }}
+        .styled-table {{
+            width: 70% !important;  /* Ajusta el ancho aquí */
+            margin: auto;
+        }}
+        th {{
+            background-color: #1F77B4 !important;
+            color: white !important;
+            text-align: center !important;
+            font-size: 14px !important;  /* Reduce el tamaño de la letra del encabezado */
+        }}
+        td {{
+            text-align: center !important;
+            font-size: 13px !important;  /* Reduce el tamaño de la letra de las celdas */
+            white-space: nowrap;
+        }}
+        .concepto-col {{
+            font-weight: bold !important;
+        }}
+        hr.divider {{
+            border: 0;
+            height: 1px;
+            background: #444;
+            margin: 2rem 0;
+        }}
+        .custom-select-container {{
+            display: flex; justify-content: center;
+            font-size: 1.2rem;
+        }}
+        .custom-select {{
+            width: 150px !important;
+        }}
+        .small-font {{
+            font-size: 12px !important;  /* Reduce el tamaño de la letra */
+        }}
+    </style>
+    <hr class='divider'>
+""", unsafe_allow_html=True)
+    
+
+
     col1, col2 = st.columns(2)
     
     folder_emoji = emoji.emojize(':file_folder:')
