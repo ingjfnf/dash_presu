@@ -767,6 +767,17 @@ if st.session_state.show_dataframe:
         )
 
         st.plotly_chart(fig)
+
+        excel_data = descargar_excel(df_distribucion)
+        st.download_button(
+            label="Descargar Datos",
+            data=excel_data,
+            file_name="Distribución.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+
+
     else:
         st.markdown('<p style="font-size:24px; color:orange;">Por favor, selecciona al menos un concepto para visualizar la gráfica.</p>', unsafe_allow_html=True)
 
@@ -820,6 +831,8 @@ else:
     <hr class='divider'>
 """, unsafe_allow_html=True)
     
+
+
 
 
     col1, col2 = st.columns(2)
