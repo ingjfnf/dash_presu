@@ -768,7 +768,15 @@ if st.session_state.show_dataframe:
 
         st.plotly_chart(fig)
 
-        excel_data = df_distribucion
+        def descargar_excel_d(dataframe):
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                dataframe.to_excel(writer, index=False, sheet_name='Sheet1')
+            processed_data = output.getvalue()
+            return processed_data
+
+
+        excel_data = descargar_excel_d(df_distribucion)
         st.download_button(
             label="Descargar Datos",
             data=excel_data,
