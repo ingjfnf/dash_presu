@@ -768,7 +768,7 @@ if st.session_state.show_dataframe:
 
         st.plotly_chart(fig)
 
-        excel_data = descargar_excel(df_distribucion)
+        excel_data = df_distribucion
         st.download_button(
             label="Descargar Datos",
             data=excel_data,
