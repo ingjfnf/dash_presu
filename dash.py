@@ -191,6 +191,38 @@ def style_tabla_filtro(df):
     
     return styled_df
 
+
+def style_tabla_distribucion(df):
+    df_formatted = df.copy()
+    
+    def format_percentage(value):
+        if pd.isnull(value):
+            return 'None'
+        return f'{value:.2f} %'
+
+    for col in df.columns:
+        if col not in ['CONCEPTO', 'ANALISIS']:
+            df_formatted[col] = df_formatted[col].apply(format_percentage)
+    
+    styled_df = df_formatted.style.set_table_styles(
+        [
+            {
+                'selector': 'th',
+                'props': [('background-color', '#1F77B4'), ('color', 'white'), ('font-size', '14px'), ('text-align', 'center')]
+            },
+            {
+                'selector': 'td',
+                'props': [('font-size', '12px'), ('text-align', 'center'), ('white-space', 'nowrap')]
+            },
+            {
+                'selector': 'td.col0',
+                'props': [('font-weight', 'bold')]
+            }
+        ]
+    ).set_properties(**{'border': '1px solid white', 'width': '70px'})
+    
+    return styled_df
+
 def pareto_auto(traza_df):
     traza_df['PRESUPUESTO'] = traza_df['PRESUPUESTO'].fillna(0)
     traza_df['PRESUPUESTO'] = traza_df['PRESUPUESTO'].round().astype('int64')
@@ -439,7 +471,7 @@ if st.session_state.show_dataframe:
         }}
     </style>
     
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 
     st.markdown("<br><br><br><br>", unsafe_allow_html=True)
@@ -600,7 +632,7 @@ if st.session_state.show_dataframe:
             st.download_button(
                 label="Descargar Datos",
                 data=excel_data,
-                file_name="df_final.xlsx",
+                file_name="tendencias.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
             
@@ -700,14 +732,25 @@ if st.session_state.show_dataframe:
     st.subheader(":point_right: Análisis de Distribución de Costos Mensuales por Concepto")
    
     # Variable selector
-    st.markdown('<div class="custom-select-container">', unsafe_allow_html=True)
-    st.markdown('<span style="font-size: 1.3rem;">Selecciona el concepto para analizar</span>', unsafe_allow_html=True)
-    seleccion_conceptos = st.multiselect(
-        '',
-        options=df_distribucion['CONCEPTO'].unique(),
-        key="custom-selector-conceptos"
-    )    
-    df_filtrado= df_distribucion[df_distribucion['CONCEPTO'].isin(seleccion_conceptos)].copy()
+    col1, col2 = st.columns(2)
+    with col1:
+        seleccion_conceptos = st.multiselect(
+            'Selecciona el concepto para analizar',
+            options=df_distribucion['CONCEPTO'].unique(),
+            key="custom-selector-conceptos"
+        )    
+
+    with col2:
+        seleccion_analisis = st.multiselect(
+            'Selecciona el tipo de análisis para analizar',
+            options=df_distribucion['ANALISIS'].unique(),
+            key="custom-selector-analisis"
+        ) 
+
+    df_filtrado = df_distribucion[
+        (df_distribucion['CONCEPTO'].isin(seleccion_conceptos)) &
+        (df_distribucion['ANALISIS'].isin(seleccion_analisis))
+    ].copy()
 
     if not df_filtrado.empty:
         df_filtrado['FECHA'] = pd.to_datetime(df_filtrado['FECHA'])
@@ -718,14 +761,17 @@ if st.session_state.show_dataframe:
         meses_ordenados = ['January', 'February', 'March', 'April', 'May', 'June', 
                         'July', 'August', 'September', 'October', 'November', 'December']
         df_filtrado['Mes'] = pd.Categorical(df_filtrado['Mes'], categories=meses_ordenados, ordered=True)
+        
+        # Crear una columna combinada para concepto y análisis
+        df_filtrado['CONCEPTO_ANALISIS'] = df_filtrado['CONCEPTO'] + ' - ' + df_filtrado['ANALISIS']
 
         fig = px.line(
             df_filtrado,
             x='Mes',
             y='PESO PONDERADO PROMEDIO',
-            color='ANALISIS',
+            color='CONCEPTO_ANALISIS',
             title="DISTRIBUCIÓN MENSUAL DE COSTOS",
-            labels={'PESO PONDERADO PROMEDIO': 'DISTRIBUCIÓN PORCENTUAL %', 'ANALISIS': 'Tipo de Análisis'},
+            labels={'PESO PONDERADO PROMEDIO': 'DISTRIBUCIÓN PORCENTUAL %', 'CONCEPTO_ANALISIS': 'Concepto - Tipo de Análisis'},
             markers=True
         )
 
@@ -734,7 +780,7 @@ if st.session_state.show_dataframe:
             trace.update(line=dict(dash=None))
 
         unique_colors = px.colors.qualitative.Plotly
-        color_mapping = {name: unique_colors[i % len(unique_colors)] for i, name in enumerate(df_filtrado['ANALISIS'].unique())}
+        color_mapping = {name: unique_colors[i % len(unique_colors)] for i, name in enumerate(df_filtrado['CONCEPTO_ANALISIS'].unique())}
         for trace in fig.data:
             trace.update(line=dict(color=color_mapping[trace.name]))
 
@@ -742,7 +788,7 @@ if st.session_state.show_dataframe:
             trace.update(
                 hovertemplate='<b>Mes</b>: %{x}<br>' +
                 '<b>Distribución Porcentual</b>: %{y:.2f}%<br>' +
-                '<b>Análisis</b>: ' + trace.name + '<br>'
+                '<b>Concepto - Análisis</b>: ' + trace.name + '<br>'
             )
 
         fig.update_layout(
@@ -767,7 +813,6 @@ if st.session_state.show_dataframe:
         )
 
         st.plotly_chart(fig)
-
         def descargar_excel_d(dataframe):
             dataframe['FECHA'] = pd.to_datetime(dataframe['FECHA'])
             dataframe['FECHA'] = dataframe['FECHA'].dt.strftime('%Y-%m-%d')
@@ -786,10 +831,58 @@ if st.session_state.show_dataframe:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
+        with st.expander("TABLA DINÁMICA: DISTRIBUCIÓN MENSUAL DE COSTOS POR ESCENARIO"):
+            col1, col2 = st.columns(2)
+                
+            with col1:
+                filtro_conceptos = st.multiselect(
+                'Selecciona el concepto para analizar',
+                options=df_distribucion['CONCEPTO'].unique(),
+                key="conceptos_tabla"
+            )   
+            with col2:
+                filtro_analisis = st.multiselect(
+                'Selecciona el tipo de análisis para analizar',
+                options=df_distribucion['ANALISIS'].unique(),
+                key="tabla_analisis"
+                ) 
+            
+            df_tabla=df_distribucion.copy()
+            df_tabla['FECHA'] = pd.to_datetime(df_tabla['FECHA'])
+            df_tabla['NOMBRE_MES'] = df_tabla['FECHA'].dt.strftime('%b')
+
+            df_filtrado_t = df_tabla[(df_tabla['CONCEPTO'].isin(filtro_conceptos)) & (df_tabla['ANALISIS'].isin(filtro_analisis))].copy()
+            if not df_filtrado_t.empty:
+                del df_filtrado_t["FECHA"]
+                pivot_df = df_filtrado_t.pivot_table(
+                    index=['ANALISIS', 'CONCEPTO'],
+                    columns='NOMBRE_MES',
+                    values='PESO PONDERADO PROMEDIO',
+                    aggfunc='mean'
+                ).reset_index()
+
+                
+                all_months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                
+                
+                for month in all_months:
+                    if month not in pivot_df.columns:
+                        pivot_df[month] = None
+
+                
+                pivot_df = pivot_df[['ANALISIS', 'CONCEPTO'] + all_months]
+                pivot_df = pivot_df.sort_values(by=['CONCEPTO'])
+                styled_distribuido = style_tabla_distribucion(pivot_df)
+                st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
+                st.write(styled_distribuido.set_table_attributes('class="styled-table"').hide(axis="index").to_html(), unsafe_allow_html=True)
+
+            else:
+                st.markdown('<p style="font-size:24px; color:orange;">Por favor, selecciona al menos un concepto y un tipo de análisis para visualizar la tabla.</p>', unsafe_allow_html=True)
+
 
 
     else:
-        st.markdown('<p style="font-size:24px; color:orange;">Por favor, selecciona al menos un concepto para visualizar la gráfica.</p>', unsafe_allow_html=True)
+        st.markdown('<p style="font-size:24px; color:orange;">Por favor, selecciona al menos un concepto y un tipo de análisis para visualizar la gráfica.</p>', unsafe_allow_html=True)
 
     
 else:
@@ -839,11 +932,8 @@ else:
         }}
     </style>
     <hr class='divider'>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
-
-
-
 
     col1, col2 = st.columns(2)
     
