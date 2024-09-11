@@ -11,7 +11,7 @@ warnings.filterwarnings('ignore')
 st.set_page_config(page_title="PLANNING & REPORTING!!!", page_icon=":bar_chart:", layout="wide")
 
 # URL de la imagen del logo en GitHub
-logo_url = "https://raw.githubusercontent.com/ingjfnf/dash_presu/main/logo.jpg"
+logo_url = "https://raw.githubusercontent.com/ingjfnf/dash_presu/main/log_red.jpg"
 
 
 # Inicializamos el estado de sesión
