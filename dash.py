@@ -75,6 +75,7 @@ def generate_scroller_html(df):
     return html_content
 
 
+
 # Función para transformar los datos
 def arreglos(preclosing_df, simulacion_df, actual, historico_df):
     preclosing_df['PRESUPUESTO'] = preclosing_df['PRESUPUESTO'].fillna(0).round().astype('int64')
@@ -105,8 +106,25 @@ def arreglos(preclosing_df, simulacion_df, actual, historico_df):
 
 def format_currency(value):
     if isinstance(value, (int, float)):
-        return f"${value:,.0f}".replace(",", ".").replace("$", "$ ")
+ 
+        if value < 0:
+            return f"- $ {abs(value):,.0f}".replace(",", ".")
+        else:
+            return f"$ {value:,.0f}".replace(",", ".")
     return value
+
+def format_currency_with_semaforo(value):
+    
+    if isinstance(value, (int, float)):
+        formatted_value = f"{abs(value):,.0f}".replace(",", ".")
+        if value < 0:
+            return f"- $ {formatted_value} 🟢"  
+        elif value > 0:
+            return f"$ {formatted_value} 🔴"   
+        else:
+            return f"$ {formatted_value} 🟡"   
+    return value 
+
 
 def format_percentage(value):
     return f"{value:.2f}%"
@@ -166,17 +184,24 @@ def style_dataframe_filtered(df):
     return styled_df
 
 
-def style_tabla_filtro(df):
+def style_tabla_filtro(df,nombre):
     df_formatted = df.copy()
+
+    df_formatted[nombre] = df[nombre].apply(format_currency_with_semaforo)
+
     for col in df.columns:
-        if col != 'CONCEPTO' or col != 'MES':
+        if col != 'CONCEPTO' or col != 'MES' or col != nombre:
             df_formatted[col] = df_formatted[col].apply(format_currency)
-    
+
     styled_df = df_formatted.style.set_table_styles(
         [
             {
                 'selector': 'th',
-                'props': [('background-color', '#1F77B4'), ('color', 'white'), ('font-size', '14px'), ('text-align', 'center')]
+                'props': [('background-color', '#1F77B4'), 
+                          ('color', 'white'), 
+                          ('font-size', '14px'), 
+                          ('text-align', 'center'),
+                          ('white-space', 'nowrap')]  
             },
             {
                 'selector': 'td',
@@ -675,8 +700,13 @@ if st.session_state.show_dataframe:
                         meses_ls = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
                         df_pivot['MES'] = pd.Categorical(df_pivot['MES'], categories=meses_ls, ordered=True)
                         dfsalida = df_pivot.sort_values(by=['CONCEPTO', 'MES'])
-                        dfsalida["DIFERENCIA"] = dfsalida.apply(lambda x: abs(x[dfsalida.columns[-2]] - x[dfsalida.columns[-1]]), axis=1)
-                        styled_filtrado = style_tabla_filtro(dfsalida)
+                        nombre_columna_diferencia = f"{escenario_2} - {escenario_1}"
+                        dfsalida[nombre_columna_diferencia] = dfsalida.apply(lambda x: x[escenario_2] - x[escenario_1], axis=1)
+                        if escenario_1==escenario_2:
+                            dfsalida=dfsalida[['CONCEPTO', 'MES',escenario_1,nombre_columna_diferencia]]
+                        else:
+                            dfsalida=dfsalida[['CONCEPTO', 'MES',escenario_1,escenario_2,nombre_columna_diferencia]]
+                        styled_filtrado = style_tabla_filtro(dfsalida,nombre_columna_diferencia)
                         st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
                         st.write(styled_filtrado.set_table_attributes('class="styled-table"').hide(axis="index").to_html(), unsafe_allow_html=True)
                         st.markdown("</div>", unsafe_allow_html=True)
