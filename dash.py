@@ -43,7 +43,7 @@ def generate_scroller_html(df):
     #scroller {{
         overflow: hidden;
         position: relative;
-        margin-bottom: 0px;  /* Asegúrate de que no haya margen debajo del scroller */
+        margin-bottom: 0px; 
         display: flex;
         align-items: center;
     }}
