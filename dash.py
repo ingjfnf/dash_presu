@@ -63,8 +63,8 @@ def generate_scroller_html(df):
         border: 0;
         height: 1px;
         background: #444;
-        margin-top: 0;  /* Sin margen superior */
-        margin-bottom: 2rem;  /* Puedes ajustar el margen inferior si necesitas más espacio antes del siguiente contenido */
+        margin-top: 0;  
+        margin-bottom: 2rem;  
     }}
     #scroller:hover #scrolling-text {{
         animation-play-state: paused;
