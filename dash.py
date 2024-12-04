@@ -11,15 +11,15 @@ warnings.filterwarnings('ignore')
 st.set_page_config(page_title="PLANNING & REPORTING!!!", page_icon=":bar_chart:", layout="wide")
 
 # URL de la imagen del logo en GitHub
+#logo_url = "https://raw.githubusercontent.com/ingjfnf/dash_presu/main/logo.jpg"
 logo_url = "https://raw.githubusercontent.com/ingjfnf/dash_presu/main/log_red.jpg"
-
 
 # Inicializamos el estado de sesión
 if 'show_dataframe' not in st.session_state:
     st.session_state.show_dataframe = False
 
 
-def generate_scroller_html(df):
+def banner(df):
     items = []
     for index, row in df.iterrows():
         if row['VARIACION'] < 0:
@@ -28,7 +28,7 @@ def generate_scroller_html(df):
             items.append(f"<span>{row['CONCEPTO']} <span style='color:green;'>&#9650;</span> {row['VARIACION']}% &nbsp;&nbsp;&nbsp;&nbsp;</span>")
     
     items_html = ''.join(items)
-    items_html_double = items_html + items_html  # Duplicamos los elementos para el scroller continuo
+    items_html_double = items_html + items_html  # tengo que duplicar los elementos para el scroller continuo
     
     
     html_content = f"""
@@ -43,7 +43,7 @@ def generate_scroller_html(df):
     #scroller {{
         overflow: hidden;
         position: relative;
-        margin-bottom: 0px; 
+        margin-bottom: 0px;  
         display: flex;
         align-items: center;
     }}
@@ -76,7 +76,6 @@ def generate_scroller_html(df):
 
 
 
-# Función para transformar los datos
 def arreglos(preclosing_df, simulacion_df, actual, historico_df):
     preclosing_df['PRESUPUESTO'] = preclosing_df['PRESUPUESTO'].fillna(0).round().astype('int64')
     preclosing_df = preclosing_df.rename(columns={"PRESUPUESTO": "VALOR"})
@@ -104,7 +103,7 @@ def arreglos(preclosing_df, simulacion_df, actual, historico_df):
     conjunto_total = pd.concat([preclosing_df, simulacion_df, actual_tendencia] + list(dataframes_por_año.values()))
     return conjunto_total
 
-def format_currency(value):
+def formato_moneda(value):
     if isinstance(value, (int, float)):
  
         if value < 0:
@@ -113,7 +112,7 @@ def format_currency(value):
             return f"$ {value:,.0f}".replace(",", ".")
     return value
 
-def format_currency_with_semaforo(value):
+def semaforo(value):
     
     if isinstance(value, (int, float)):
         formatted_value = f"{abs(value):,.0f}".replace(",", ".")
@@ -126,17 +125,17 @@ def format_currency_with_semaforo(value):
     return value 
 
 
-def format_percentage(value):
+def formato_porcentaje(value):
     return f"{value:.2f}%"
 
 
-def style_dataframe(df):
+def tabla_dataframe(df):
     df_formatted = df.copy()
     for col in df.columns:
         if col not in ['PORCENTAJE_ACUMULADO', 'FECHA_MAX_DIFF']:
-            df_formatted[col] = df_formatted[col].apply(format_currency)
+            df_formatted[col] = df_formatted[col].apply(formato_moneda)
         elif col == 'PORCENTAJE_ACUMULADO':
-            df_formatted[col] = df_formatted[col].apply(format_percentage)
+            df_formatted[col] = df_formatted[col].apply(formato_porcentaje)
     
     styled_df = df_formatted.style.set_table_styles(
         [
@@ -158,11 +157,11 @@ def style_dataframe(df):
     return styled_df
 
 
-def style_dataframe_filtered(df):
+def tabla_df_filtro(df):
     df_formatted = df.copy()
     for col in df.columns:
         if col == 'VALOR':
-            df_formatted[col] = df_formatted[col].apply(format_currency)
+            df_formatted[col] = df_formatted[col].apply(formato_moneda)
     
     styled_df = df_formatted.style.set_table_styles(
         [
@@ -187,11 +186,11 @@ def style_dataframe_filtered(df):
 def style_tabla_filtro(df,nombre):
     df_formatted = df.copy()
 
-    df_formatted[nombre] = df[nombre].apply(format_currency_with_semaforo)
+    df_formatted[nombre] = df[nombre].apply(semaforo)
 
     for col in df.columns:
         if col != 'CONCEPTO' or col != 'MES' or col != nombre:
-            df_formatted[col] = df_formatted[col].apply(format_currency)
+            df_formatted[col] = df_formatted[col].apply(formato_moneda)
 
     styled_df = df_formatted.style.set_table_styles(
         [
@@ -220,14 +219,14 @@ def style_tabla_filtro(df,nombre):
 def style_tabla_distribucion(df):
     df_formatted = df.copy()
     
-    def format_percentage(value):
+    def porcenta(value):
         if pd.isnull(value):
             return 'None'
         return f'{value:.2f} %'
 
     for col in df.columns:
         if col not in ['CONCEPTO', 'ANALISIS']:
-            df_formatted[col] = df_formatted[col].apply(format_percentage)
+            df_formatted[col] = df_formatted[col].apply(porcenta)
     
     styled_df = df_formatted.style.set_table_styles(
         [
@@ -446,7 +445,7 @@ if st.session_state.show_dataframe:
     fecha_año = format_date(fecha_hoy, format='y', locale='es_ES')
     #scroll
     scrolll=maquillaje(actual)
-    html_content = generate_scroller_html(scrolll)
+    html_content = banner(scrolll)
     st.markdown(html_content, unsafe_allow_html=True)   
     st.markdown("<div style='margin-top: 60px;'></div>", unsafe_allow_html=True)
 
@@ -499,7 +498,7 @@ if st.session_state.show_dataframe:
     """, unsafe_allow_html=True)
 
 
-    st.markdown("<br><br><br><br>", unsafe_allow_html=True)
+    st.markdown("<br><br>", unsafe_allow_html=True)
     # TABLA PARETO 2
     
     st.subheader(":point_right: Análisis de Pareto de la Ejecución Actual al: " + fecha_formateada + " de " + fecha_mes + " de " + fecha_año)
@@ -508,7 +507,7 @@ if st.session_state.show_dataframe:
     pareto_uno = actual.copy()
 
     grafica_1 = pareto_auto(pareto_uno)
-    styled_df = style_dataframe(grafica_1)
+    styled_df = tabla_dataframe(grafica_1)
 
     st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
     st.write(styled_df.set_table_attributes('class="styled-table"').hide(axis="index").to_html(), unsafe_allow_html=True)
@@ -533,7 +532,7 @@ if st.session_state.show_dataframe:
     filtered_df = pareto_uno[pareto_uno['FECHA'].isin(selected_conceptos)]
 
     grafica_2 = pareto_filtro(filtered_df)
-    styled_df_2 = style_dataframe(grafica_2)
+    styled_df_2 = tabla_dataframe(grafica_2)
 
     st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
     st.write(styled_df_2.set_table_attributes('class="styled-table small-font"').hide(axis="index").to_html(), unsafe_allow_html=True)
@@ -748,7 +747,7 @@ if st.session_state.show_dataframe:
         df_filtered = df_out[df_out['CONCEPTO'].isin(selected_conceptos)]
 
         
-        styled_df_3 = style_dataframe_filtered(df_filtered)
+        styled_df_3 = tabla_df_filtro(df_filtered)
 
         
         st.markdown("<div style='display: flex; justify-content: center;'>", unsafe_allow_html=True)
@@ -914,84 +913,129 @@ if st.session_state.show_dataframe:
     else:
         st.markdown('<p style="font-size:24px; color:orange;">Por favor, selecciona al menos un concepto y un tipo de análisis para visualizar la gráfica.</p>', unsafe_allow_html=True)
 
-    
+
 else:
+
+    def credenciales(username, password):
+        users = st.secrets
+        if username in users and users[username] == password:
+            return True
+        return False
     st.markdown(f"""
-    <div style="display: flex; justify-content: center; align-items: center; position: relative;">
-        <img src="{logo_url}" alt="Logo de la empresa" style="top: 0; width: 180px; height: auto;"/>
-        <h1 style="text-align: right;">E.D.A. PLANNING & REPORTING !!! </h1>
-        <span style="font-size: 3rem; margin-left: 2rem;">📊</span>
-    </div>
-    <style>
-        div.block-container {{
-            padding-top: 3rem;
-        }}
-        .styled-table {{
-            width: 70% !important;  /* Ajusta el ancho aquí */
-            margin: auto;
-        }}
-        th {{
-            background-color: #1F77B4 !important;
-            color: white !important;
-            text-align: center !important;
-            font-size: 14px !important;  /* Reduce el tamaño de la letra del encabezado */
-        }}
-        td {{
-            text-align: center !important;
-            font-size: 13px !important;  /* Reduce el tamaño de la letra de las celdas */
-            white-space: nowrap;
-        }}
-        .concepto-col {{
-            font-weight: bold !important;
-        }}
-        hr.divider {{
-            border: 0;
-            height: 1px;
-            background: #444;
-            margin: 2rem 0;
-        }}
-        .custom-select-container {{
-            display: flex; justify-content: center;
-            font-size: 1.2rem;
-        }}
-        .custom-select {{
-            width: 150px !important;
-        }}
-        .small-font {{
-            font-size: 12px !important;  /* Reduce el tamaño de la letra */
-        }}
-    </style>
-    <hr class='divider'>
-    """, unsafe_allow_html=True)
+        <div style="display: flex; justify-content: center; align-items: center; position: relative;">
+            <img src="{logo_url}" alt="Logo de la empresa" style="top: 0; width: 180px; height: auto;"/>
+            <h1 style="text-align: right;">E.D.A. PLANNING & REPORTING !!! </h1>
+            <span style="font-size: 3rem; margin-left: 2rem;">📊</span>
+        </div>
+        <style>
+            div.block-container {{
+                padding-top: 3rem;
+            }}
+            .styled-table {{
+                width: 70% !important;  /* Ajusta el ancho aquí */
+                margin: auto;
+            }}
+            th {{
+                background-color: #1F77B4 !important;
+                color: white !important;
+                text-align: center !important;
+                font-size: 14px !important;  /* Reduce el tamaño de la letra del encabezado */
+            }}
+            td {{
+                text-align: center !important;
+                font-size: 13px !important;  /* Reduce el tamaño de la letra de las celdas */
+                white-space: nowrap;
+            }}
+            .concepto-col {{
+                font-weight: bold !important;
+            }}
+            hr.divider {{
+                border: 0;
+                height: 1px;
+                background: #444;
+                margin: 2rem 0;
+            }}
+            .custom-select-container {{
+                display: flex; justify-content: center;
+                font-size: 1.2rem;
+            }}
+            .custom-select {{
+                width: 150px !important;
+            }}
+            .small-font {{
+                font-size: 12px !important;  /* Reduce el tamaño de la letra */
+            }}
+        </style>
+        
+        """, unsafe_allow_html=True)
+    st.markdown("<br><br>", unsafe_allow_html=True)
     
-
-    col1, col2 = st.columns(2)
+    # Estado de sesión para controlar el acceso
+    if 'authenticated' not in st.session_state:
+        st.session_state['authenticated'] = False
     
-    folder_emoji = emoji.emojize(':file_folder:')
-    with col1:
-        preclosing = st.file_uploader(f"{folder_emoji} CARGUE DE ARCHIVO PRECLOSING", type=["csv", "txt", "xlsx", "xls"], key="preclosing_upload")
-        simulacion = st.file_uploader(f"{folder_emoji} CARGUE DE ARCHIVO SIMULACIÓN ESCENARIOS", type=["csv", "txt", "xlsx", "xls"], key="simulacion_upload")
+    # Pantalla de inicio de sesión
+    if not st.session_state['authenticated']:
+        
+        st.markdown(
+        """
+        <style>
+        .customizado-container {
+            max-width: 30px; /* Ajusta este valor para controlar el ancho */
+            margin: auto; /* Centrar el contenedor */
+            padding: 10px;
+        }
+        .stTextInput {
+            width: 50%; /* Hace que los campos se ajusten al contenedor */
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+        )
 
-    with col2:
-        historico = st.file_uploader(f"{folder_emoji} CARGUE DE ARCHIVO HISTÓRICO DE EJECUCIONES", type=["csv", "txt", "xlsx", "xls"], key="historico_upload")
-        traza = st.file_uploader(f"{folder_emoji} CARGUE DE ARCHIVO DE EJECUCIÓN ACTUAL", type=["csv", "txt", "xlsx", "xls"], key="traza_upload")
+        # Crear contenedor personalizado
+        st.markdown('<div class="customizado-container">', unsafe_allow_html=True)
+        username = st.text_input("Nombre de usuario")
+        password = st.text_input("Contraseña", type="password")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    if preclosing is not None:
-        st.session_state.preclosing = preclosing
-    if simulacion is not None:
-        st.session_state.simulacion = simulacion
-    if historico is not None:
-        st.session_state.historico = historico
-    if traza is not None:
-        st.session_state.traza = traza
-
-    if 'preclosing' in st.session_state and 'simulacion' in st.session_state and 'historico' in st.session_state and 'traza' in st.session_state:
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            st.markdown('<p style="font-size:24px; color:green;">Todos los archivos han sido cargados correctamente.</p>', unsafe_allow_html=True)
-        with col2:
-            if st.button('Siguiente', key="next_button"):
-                st.session_state.show_dataframe = True
+        if st.button("Iniciar sesión"):
+            if credenciales(username, password):
+                st.session_state['authenticated'] = True
                 st.experimental_rerun()
+            else:
+                st.error("Nombre de usuario o contraseña incorrectos")
+                
     else:
-        st.markdown('<p style="font-size:24px; color:red;">DEBEN SER CARGADOS LOS 4 ARCHIVOS PARA EL TABLERO, DE LO CONTRARIO NO ES POSIBLE CONTINUAR.</p>', unsafe_allow_html=True)
+
+         
+        col1, col2 = st.columns(2)
+        
+        folder_emoji = emoji.emojize(':file_folder:')
+        with col1:
+            preclosing = st.file_uploader(f"{folder_emoji} CARGUE DE ARCHIVO PRECLOSING", type=["csv", "txt", "xlsx", "xls"], key="preclosing_upload")
+            simulacion = st.file_uploader(f"{folder_emoji} CARGUE DE ARCHIVO SIMULACIÓN ESCENARIOS", type=["csv", "txt", "xlsx", "xls"], key="simulacion_upload")
+
+        with col2:
+            historico = st.file_uploader(f"{folder_emoji} CARGUE DE ARCHIVO HISTÓRICO DE EJECUCIONES", type=["csv", "txt", "xlsx", "xls"], key="historico_upload")
+            traza = st.file_uploader(f"{folder_emoji} CARGUE DE ARCHIVO DE EJECUCIÓN ACTUAL", type=["csv", "txt", "xlsx", "xls"], key="traza_upload")
+
+        if preclosing is not None:
+            st.session_state.preclosing = preclosing
+        if simulacion is not None:
+            st.session_state.simulacion = simulacion
+        if historico is not None:
+            st.session_state.historico = historico
+        if traza is not None:
+            st.session_state.traza = traza
+
+        if 'preclosing' in st.session_state and 'simulacion' in st.session_state and 'historico' in st.session_state and 'traza' in st.session_state:
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.markdown('<p style="font-size:24px; color:green;">Todos los archivos han sido cargados correctamente.</p>', unsafe_allow_html=True)
+            with col2:
+                if st.button('Siguiente', key="next_button"):
+                    st.session_state.show_dataframe = True
+                    st.experimental_rerun()
+        else:
+            st.markdown('<p style="font-size:24px; color:red;">DEBEN SER CARGADOS LOS 4 ARCHIVOS PARA EL TABLERO, DE LO CONTRARIO NO ES POSIBLE CONTINUAR.</p>', unsafe_allow_html=True)
