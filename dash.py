@@ -917,7 +917,7 @@ if st.session_state.show_dataframe:
 else:
 
     def credenciales(username, password):
-        users = st.secrets
+        users = st.secrets["users"]
         if username in users and users[username] == password:
             return True
         return False
